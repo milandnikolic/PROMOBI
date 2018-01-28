@@ -1,0 +1,186 @@
+
+# Enable GZIP
+<ifmodule mod_deflate.c>
+	AddOutputFilterByType DEFLATE text/plain
+	AddOutputFilterByType DEFLATE text/text
+	AddOutputFilterByType DEFLATE text/html
+	AddOutputFilterByType DEFLATE text/plain
+	AddOutputFilterByType DEFLATE text/xml
+	AddOutputFilterByType DEFLATE text/css
+	AddOutputFilterByType DEFLATE image/gif
+	AddOutputFilterByType DEFLATE image/jpeg
+	AddOutputFilterByType DEFLATE image/jpg
+	AddOutputFilterByType DEFLATE image/png
+	AddOutputFilterByType DEFLATE image/gif
+	AddOutputFilterByType DEFLATE image/flv
+	AddOutputFilterByType DEFLATE image/ico
+	AddOutputFilterByType DEFLATE image/swf
+	AddOutputFilterByType DEFLATE application/rss+xml 
+	AddOutputFilterByType DEFLATE application/xhtml+xml
+	AddOutputFilterByType DEFLATE application/xml
+	AddOutputFilterByType DEFLATE application/x-javascript
+	AddOutputFilterByType DEFLATE application/javascript
+	AddOutputFilterByType DEFLATE application/json
+	AddOutputFilterByType DEFLATE video/3gpp
+	AddOutputFilterByType DEFLATE video/3gpp2
+	AddOutputFilterByType DEFLATE video/x-flv
+	AddOutputFilterByType DEFLATE video/jpm
+	AddOutputFilterByType DEFLATE video/jpeg
+	AddOutputFilterByType DEFLATE video/x-m4v
+	AddOutputFilterByType DEFLATE video/mp4
+	AddOutputFilterByType DEFLATE video/ogg
+	AddOutputFilterByType DEFLATE video/webm
+	AddOutputFilterByType DEFLATE video/quicktime
+	AddOutputFilterByType DEFLATE audio/x-mpegurl
+	AddOutputFilterByType DEFLATE audio/midi
+	AddOutputFilterByType DEFLATE audio/mp3
+	AddOutputFilterByType DEFLATE audio/mp4
+	AddOutputFilterByType DEFLATE audio/mpeg
+	AddOutputFilterByType DEFLATE audio/webm
+	AddOutputFilterByType DEFLATE audio/basic
+	AddOutputFilterByType DEFLATE audio/x-wav
+	AddOutputFilterByType DEFLATE audio/wav
+	
+	# Fix Browsers
+	BrowserMatch ^Mozilla/4 gzip-only-text/html
+	BrowserMatch ^Mozilla/4\.0[678] no-gzip
+	BrowserMatch \bMSIE !no-gzip !gzip-only-text/html
+</ifmodule>
+ 
+# Expires Headers - 2678400s = 31 days
+<ifmodule mod_expires.c>
+	ExpiresActive On
+	ExpiresDefault "access plus 1 seconds"
+	ExpiresByType text/html "access plus 7200 seconds"
+	ExpiresByType image/gif "access plus 2678400 seconds"
+	ExpiresByType image/jpeg "access plus 2678400 seconds"
+	ExpiresByType image/png "access plus 2678400 seconds"
+	ExpiresByType text/css "access plus 518400 seconds"
+	ExpiresByType text/javascript "access plus 2678400 seconds"
+	ExpiresByType application/x-javascript "access plus 2678400 seconds"
+</ifmodule>
+ 
+# Cache Headers
+<ifmodule mod_headers.c>
+	# Cache specified files for 31 days
+	<filesmatch "\.(ico|flv|jpg|jpeg|png|gif|css|swf)$">
+		Header set Cache-Control "max-age=2678400, public"
+	</filesmatch>
+	# Cache HTML files for a couple hours
+	<filesmatch "\.(html|htm)$">
+		Header set Cache-Control "max-age=7200, private, must-revalidate"
+	</filesmatch>
+	# Cache PDFs for a day
+	<filesmatch "\.(pdf)$">
+		Header set Cache-Control "max-age=86400, public"
+	</filesmatch>
+	# Cache Javascripts for 31 days
+	<filesmatch "\.(js)$">
+		Header set Cache-Control "max-age=2678400, private"
+	</filesmatch>
+</ifmodule>
+ 
+# Disable directory browsing
+Options All -Indexes
+ 
+# Deny access to wp-config.php file
+<files wp-config.php>
+	order allow,deny
+	deny from all
+</files>
+ 
+# Deny access to xmlrpc.php file *** REMOVE THIS IF YOU WANT TO ACCESS IT ***
+<files xmlrpc.php>
+	order allow,deny
+	deny from all
+</files>
+ 
+# Deny access to all .htaccess files
+<files ~ "^.*\.([Hh][Tt][Aa])">
+	order allow,deny
+	deny from all
+	satisfy all
+</files>
+ 
+# Block wp-includes folder and files
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+	RewriteBase /
+	RewriteRule ^wp-admin/includes/ - [F,L]
+	RewriteRule !^wp-includes/ - [S=3]
+	RewriteRule ^wp-includes/[^/]+\.php$ - [F,L]
+	RewriteRule ^wp-includes/js/tinymce/langs/.+\.php - [F,L]
+	RewriteRule ^wp-includes/theme-compat/ - [F,L]
+</IfModule>
+ 
+# Block Massive attacks
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+	# Block out any script trying to base64_encode data within the URL.
+	RewriteCond %{QUERY_STRING} base64_encode[^(]*\([^)]*\) [OR]
+	# Block out any script that includes a <script> tag in URL.
+	RewriteCond %{QUERY_STRING} (<|%3C)([^s]*s)+cript.*(>|%3E) [NC,OR]
+	# Block out any script trying to set a PHP GLOBALS variable via URL.
+	RewriteCond %{QUERY_STRING} GLOBALS(=|\[|\%[0-9A-Z]{0,2}) [OR]
+	# Block out any script trying to modify a _REQUEST variable via URL.
+	RewriteCond %{QUERY_STRING} _REQUEST(=|\[|\%[0-9A-Z]{0,2})
+	# Return 403 Forbidden header and show the content of the root homepage
+	RewriteRule .* index.php [F]
+	
+	RewriteCond %{REQUEST_FILENAME} !-f
+	RewriteCond %{REQUEST_FILENAME} !-d
+ 
+	# Disable user agents from this locations
+	SetEnvIfNoCase User-Agent "^Missigua Locator" bad_bot
+	#SetEnvIfNoCase User-Agent "^PEAR HTTP_Request class" bad_bot
+	SetEnvIfNoCase User-Agent "^Java/1.4.1" bad_bot
+	SetEnvIfNoCase User-Agent "^Java/1.5.0" bad_bot
+	SetEnvIfNoCase User-Agent "^psycheclone" bad_bot
+	SetEnvIfNoCase User-Agent "^WEP Search 00" bad_bot
+	SetEnvIfNoCase User-Agent "^FlashGet" bad_bot
+	SetEnvIfNoCase User-Agent "^GetRight" bad_bot
+	SetEnvIfNoCase User-Agent "^GetWeb!" bad_bot
+	SetEnvIfNoCase User-Agent "^Go!Zilla" bad_bot
+	SetEnvIfNoCase User-Agent "^httplib" bad_bot
+	SetEnvIfNoCase User-Agent "^Indy Library" bad_bot
+	SetEnvIfNoCase User-Agent "^InfoNaviRobot" bad_bot
+	SetEnvIfNoCase User-Agent "^InterGET" bad_bot
+	SetEnvIfNoCase User-Agent "^Internet Ninja" bad_bot
+	SetEnvIfNoCase User-Agent "^LexiBot" bad_bot
+	SetEnvIfNoCase User-Agent "^libWeb/clsHTTP" bad_bot
+	SetEnvIfNoCase User-Agent "^libwww" bad_bot
+	SetEnvIfNoCase User-Agent "^libwww-perl" bad_bot
+	SetEnvIfNoCase User-Agent "^LinkextractorPro" bad_bot
+	SetEnvIfNoCase User-Agent "^Mozilla.*NEWT" bad_bot
+	SetEnvIfNoCase User-Agent "^Octopus" bad_bot
+	SetEnvIfNoCase User-Agent "^ProWebWalker" bad_bot
+	SetEnvIfNoCase User-Agent "^SuperBot" bad_bot
+	SetEnvIfNoCase User-Agent "^WebAuto" bad_bot
+	SetEnvIfNoCase User-Agent "^Wells Search II" bad_bot
+	SetEnvIfNoCase User-Agent "^Wget" bad_bot
+	SetEnvIfNoCase User-Agent "^wget" bad_bot
+ 
+	<Limit GET POST>
+		order allow,deny
+		allow from all
+		deny from env=bad_bot
+	</Limit>
+</IfModule>
+ 
+# BEGIN WordPress
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+	RewriteBase /
+	RewriteRule ^index\.php$ - [L]
+	RewriteCond %{REQUEST_FILENAME} !-f
+	RewriteCond %{REQUEST_FILENAME} !-d
+	RewriteRule . /index.php [L]
+</IfModule>
+
+
+# END WordPress
+# php -- BEGIN cPanel-generated handler, do not edit
+# NOTE this account's php is controlled via FPM and the vhost, this is a place holder.
+# Do not edit. This next line is to support the cPanel php wrapper (php_cli).
+# AddType application/x-httpd-ea-php56 .php .phtml
+# php -- END cPanel-generated handler, do not edit
